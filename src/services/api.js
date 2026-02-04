@@ -1,8 +1,8 @@
 // api.js
 
-//const BASE_URL = 'http://192.168.1.37:8081';
+const BASE_URL = 'http://127.0.0.1:8081';
 
-const BASE_URL = "https://both-rainbow-question-toronto.trycloudflare.com";
+// const BASE_URL = "https://both-rainbow-question-toronto.trycloudflare.com";
 const BASE_URL_CLOUD = "https://reflects-notifications-erik-visitors.trycloudflare.com"//"http://127.0.0.1:8082";
 const BASE_URL_LOG = "https://reflected-represent-dosage-rabbit.trycloudflare.com"//"http://127.0.0.1:8085";
 const BASE_URL_READLOG = "https://income-touched-directory-partners.trycloudflare.com"//"http://127.0.0.1:3000";
@@ -63,46 +63,46 @@ export async function setPermissions(dir) {
 
 
 // ------------------------- Global Config API -------------------------
-export const globalConfigAPI = {
-  get: async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/api/config`);
-      const json = await res.json();
-      const data = json?.config;
+// export const globalConfigAPI = {
+//   get: async () => {
+//     try {
+//       const res = await fetch(`${BASE_URL}/api/config`);
+//       const json = await res.json();
+//       const data = json?.config;
 
-      return {
-        topDir: data?.TopDir,
-        maxBackups: data?.MaxBackups,
-        compressLevel: data?.CompressLevel,
-        fillCycle: data?.FillCycle
-      };
-    } catch (error) {
-      console.error("Error fetching config:", error);
-      return { topDir: "", maxBackups: "", compressLevel: "", fillCycle: "" };
-    }
-  },
+//       return {
+//         topDir: data?.TopDir,
+//         maxBackups: data?.MaxBackups,
+//         compressLevel: data?.CompressLevel,
+//         fillCycle: data?.FillCycle
+//       };
+//     } catch (error) {
+//       console.error("Error fetching config:", error);
+//       return { topDir: "", maxBackups: "", compressLevel: "", fillCycle: "" };
+//     }
+//   },
 
-  save: async (config) => {
-    try {
-      const res = await fetch(`${BASE_URL}/api/config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          config: {
-            TopDir: config.topDir,
-            MaxBackups: config.maxBackups,
-            CompressLevel: config.compressLevel,
-            FullPeriod: config.fullPeriod,
-            FillCycle: config.fillCycle
-          }
-        })
-      });
-      return await res.json();
-    } catch (error) {
-      console.error("Error saving global config:", error);
-    }
-  }
-};
+//   save: async (config) => {
+//     try {
+//       const res = await fetch(`${BASE_URL}/api/config`, {
+//         method: "PUT",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           config: {
+//             TopDir: config.topDir,
+//             MaxBackups: config.maxBackups,
+//             CompressLevel: config.compressLevel,
+//             FullPeriod: config.fullPeriod,
+//             FillCycle: config.fillCycle
+//           }
+//         })
+//       });
+//       return await res.json();
+//     } catch (error) {
+//       console.error("Error saving global config:", error);
+//     }
+//   }
+// };
 
 // ------------------------- Hosts API -------------------------
 export const hostsAPI = {
@@ -389,7 +389,42 @@ export const notificationsAPI = {
   }
 };
 
+// export const globalConfigAPI = {
+//   save: async (data) => {
+//     const res = await fetch("/api/global-config", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(data)
+//     });
+
+//     if (!res.ok) {
+//       const err = await res.json();
+//       throw new Error(err.error || "Save failed");
+//     }
+
+//     return res.json();
+//   }
+// };
+export const globalConfigAPI = {
+  save: async (data) => {
+    const res = await fetch(`${BASE_URL}/api/global-config`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Save failed");
+    }
+
+    return res.json();
+  }
+};
+
+
 // ------------------------- User API -------------------------
+
 export const userApi = {
   login: async (payload) => {
     try {

@@ -68,21 +68,47 @@ use File::Spec;
 # Initialize BackupPC library
 our $bpc;
 our $ConfigMTime;
+my $GLOBAL_CONFIG_FILE = "/etc/backuppc/global-config.json";
 
+# sub init_backuppc {
+#     if ( !defined($bpc) ) {
+#         $bpc = BackupPC::Lib->new(undef, undef, undef, 1);
+#         if ( !$bpc ) {
+#             die "Failed to initialize BackupPC::Lib. Check configuration.\n";
+#         }
+#         $ConfigMTime = $bpc->ConfigMTime();
+#         umask($bpc->Conf()->{UmaskMode});
+#     } elsif ( $bpc->ConfigMTime() != $ConfigMTime ) {
+#         $bpc->ConfigRead();
+#         $ConfigMTime = $bpc->ConfigMTime();
+#         umask($bpc->Conf()->{UmaskMode});
+#     }
+# }
 sub init_backuppc {
     if ( !defined($bpc) ) {
-        $bpc = BackupPC::Lib->new(undef, undef, undef, 1);
-        if ( !$bpc ) {
-            die "Failed to initialize BackupPC::Lib. Check configuration.\n";
+        $bpc = BackupPC::Lib->new(undef, undef, undef, 1)
+            or die "Failed to init BackupPC::Lib";
+
+        $bpc->ConfigRead();              # 🔥 FORCE CONFIG LOAD
+        $ConfigMTime = $bpc->ConfigMTime();
+
+        my $conf = $bpc->Conf();
+        if (ref($conf) eq 'HASH' && exists $conf->{UmaskMode}) {
+            umask($conf->{UmaskMode});
         }
+    }
+    elsif ( $bpc->ConfigMTime() != $ConfigMTime ) {
+        $bpc->ConfigRead();              # 🔥 FORCE RELOAD
         $ConfigMTime = $bpc->ConfigMTime();
-        umask($bpc->Conf()->{UmaskMode});
-    } elsif ( $bpc->ConfigMTime() != $ConfigMTime ) {
-        $bpc->ConfigRead();
-        $ConfigMTime = $bpc->ConfigMTime();
-        umask($bpc->Conf()->{UmaskMode});
+
+        my $conf = $bpc->Conf();
+        if (ref($conf) eq 'HASH' && exists $conf->{UmaskMode}) {
+            umask($conf->{UmaskMode});
+        }
     }
 }
+
+
 
 # Get user from request (similar to BackupPC::CGI::Lib::NewRequest)
 sub get_user {
@@ -97,6 +123,7 @@ sub get_user {
 
     # Safely get config hash
     my $conf = $bpc->Conf();
+    $conf = {} unless ref($conf) eq 'HASH';
     my $default_user;
     if (ref($conf) eq 'HASH' && exists $conf->{BackupPCUser}) {
         $default_user = $conf->{BackupPCUser};
@@ -217,6 +244,170 @@ sub json_success {
     return $response->finalize;
 }
 
+# use IPC::System::Simple qw(system);
+use POSIX qw(WEXITSTATUS);
+
+my $MOUNT_POINT = "/mnt/backuppc_storage";
+my $CREDS_FILE  = "/var/lib/backuppc/.smb/backuppc.creds";
+
+# sub mount_samba_storage {
+#     my (%args) = @_;
+
+#     my $ip       = $args{ip};
+#     my $share    = $args{share};
+#     my $username = $args{username};
+#     my $password = $args{password};
+
+#     # 1. Write credentials
+#     system("mkdir -p /var/lib/backuppc/.smb");
+#     open(my $fh, ">", $CREDS_FILE) or die "Cannot write creds file $CREDS_FILE: $!";
+#     print $fh "username=$username\npassword=$password\n";
+#     close($fh);
+#     chmod 0600, $CREDS_FILE;
+
+#     # 2. Unmount old mount (ignore errors)
+#     system("umount $MOUNT_POINT >/dev/null 2>&1");
+
+#     # 3. Mount new Samba share
+#     my $cmd = "mount -t cifs //$ip/$share $MOUNT_POINT "
+#             . "-o credentials=$CREDS_FILE,vers=3.0,"
+#             . "uid=backuppc,gid=backuppc,file_mode=0770,dir_mode=0770";
+
+#     system($cmd) == 0
+#         or die "Failed to mount Samba share";
+
+#     # 4. Restart BackupPC
+#     system("systemctl restart backuppc") == 0
+#         or die "Failed to restart BackupPC";
+# }
+
+# sub mount_samba_storage {
+#     my (%args) = @_;
+
+#     my $ip       = $args{ip};
+#     my $share    = $args{share};
+#     my $username = $args{username};
+#     my $password = $args{password};
+
+#     my $mount_point = "/mnt/backuppc_storage";
+#     my $creds_dir   = "/var/lib/backuppc/.smb";
+#     my $creds_file  = "$creds_dir/backuppc.creds";
+
+#     # 1. Ensure dirs exist
+#     system("sudo mkdir -p $creds_dir");
+#     system("sudo mkdir -p $mount_point");
+
+#     # 2. Write creds
+#     open(my $fh, ">", $creds_file)
+#         or die "Cannot write creds file";
+#     print $fh "username=$username\npassword=$password\n";
+#     close($fh);
+#     chmod 0600, $creds_file;
+
+#     # 3. SAFE unmount (ONLY if mounted)
+#     system("mountpoint -q $mount_point && sudo umount $mount_point");
+
+#     # 4. Mount
+#     my $cmd = "mount -t cifs //$ip/$share $mount_point "
+#             . "-o credentials=$creds_file,vers=3.0,"
+#             . "uid=backuppc,gid=backuppc,file_mode=0770,dir_mode=0770";
+
+#     system("sudo $cmd");
+#     if ($? != 0) {
+#         die "Failed to mount Samba share";
+#     }
+
+#     # 5. Restart BackupPC (non-fatal)
+#     system("sudo systemctl restart backuppc");
+# }
+# sub mount_samba_storage {
+#     my (%args) = @_;
+
+#     my $ip       = $args{ip};
+#     my $share    = $args{share};
+#     my $username = $args{username};
+#     my $password = $args{password};
+
+#     my $mount_point = "/mnt/backuppc_storage";
+#     my $creds_dir   = "/var/lib/backuppc/.smb";
+#     my $creds_file  = "$creds_dir/backuppc.creds";
+
+#     # 1. Ensure directories exist (NO sudo)
+#     system("mkdir", "-p", $creds_dir) == 0
+#         or die "Failed to create creds dir";
+
+#     system("mkdir", "-p", $mount_point) == 0
+#         or die "Failed to create mount point";
+
+#     # 2. Write credentials
+#     open(my $fh, ">", $creds_file)
+#         or die "Cannot write creds file: $!";
+#     print $fh "username=$username\npassword=$password\n";
+#     close($fh);
+
+#     chmod 0600, $creds_file
+#         or die "Failed to chmod creds file";
+
+#     # 3. Unmount only if mounted
+#     system("mountpoint", "-q", $mount_point) == 0
+#         and system("umount", $mount_point);
+
+#     # 4. Mount with HARD TIMEOUT (10s)
+#     my $cmd = "/usr/bin/timeout 10s "
+#             . "/usr/sbin/mount.cifs //$ip/$share $mount_point "
+#             . "-o credentials=$creds_file,vers=3.0,"
+#             . "uid=backuppc,gid=backuppc,file_mode=0770,dir_mode=0770";
+
+#     system("logger", "ISyncLite: starting SMB mount");
+#     system($cmd);
+#     my $exit = $? >> 8;
+#     system("logger", "ISyncLite: mount finished with code $exit");
+
+#     die "SMB mount failed or timed out" if $exit != 0;
+
+#     # 5. Restart BackupPC (non-fatal)
+#     system("systemctl", "restart", "backuppc");
+# }
+sub mount_samba_storage {
+    my (%args) = @_;
+
+    my $ip       = $args{ip};
+    my $share    = $args{share};
+    my $username = $args{username};
+    my $password = $args{password};
+
+    my $creds_dir  = "/var/lib/backuppc/.smb";
+    my $creds_file = "$creds_dir/backuppc.creds";
+
+    # 1. Write credentials (backuppc owns this)
+    system("mkdir", "-p", $creds_dir) == 0
+        or die "Failed to create creds dir";
+
+    open(my $fh, ">", $creds_file)
+        or die "Cannot write creds file: $!";
+    print $fh "username=$username\npassword=$password\n";
+    close($fh);
+
+    chmod 0600, $creds_file
+        or die "Failed to chmod creds file";
+
+    # 2. Call ROOT mount helper (ONLY THIS)
+    my $cmd = "/usr/bin/sudo /usr/local/bin/backuppc-mount.sh $ip $share";
+
+    system("logger", "ISyncLite: starting SMB mount");
+    system($cmd);
+    my $exit = $? >> 8;
+    system("logger", "ISyncLite: mount finished with code $exit");
+
+    die "SMB mount failed" if $exit != 0;
+
+    # 3. Restart BackupPC (non-fatal)
+    system("systemctl", "restart", "backuppc");
+}
+
+
+
+
 # GET /api/config - Get general configuration
 sub handle_get_config {
     my $env = shift;
@@ -306,6 +497,107 @@ sub handle_put_config {
     
     return json_success({ config => $finalConfig, message => "Configuration updated successfully" });
 }
+# POST /api/global-config
+# sub handle_post_global_config {
+#     my $env = shift;
+#     my $request = Plack::Request->new($env);
+
+#     init_backuppc();
+
+#     my $user = get_user($env);
+#     return json_error(403, "Admin access required")
+#         unless check_admin_permission($user);
+
+#     my $body = $request->content;
+#     return json_error(400, "Request body required") unless $body;
+
+#     my $data;
+#     eval { $data = decode_json($body); };
+#     return json_error(400, "Invalid JSON") if $@;
+
+#     for my $key (qw/backupStoreIp backupShare backupUser backupPassword/) {
+#         return json_error(400, "$key is required")
+#             unless defined $data->{$key} && $data->{$key} ne "";
+#     }
+
+#     eval {
+#         mount_samba_storage(
+#             ip       => $data->{backupStoreIp},
+#             share    => $data->{backupShare},
+#             username => $data->{backupUser},
+#             password => $data->{backupPassword},
+#         );
+#     };
+#     if ($@) {
+#         return json_error(500, "Global config failed: $@");
+#     }
+
+# # save config to disk
+#     open my $fh, '>', $GLOBAL_CONFIG_FILE
+#         or return json_error(500, "Cannot save global config");
+#     print $fh encode_json($data);
+#     close $fh;
+
+#     return json_success({
+#         success => 1,
+#         message => "Backup storage configured successfully"
+#     });
+
+
+sub handle_post_global_config {
+    my $env = shift;
+    my $request = Plack::Request->new($env);
+
+    init_backuppc();
+
+    # ===============================
+    # TEMP: HARDCODED C1 CONFIG (TEST)
+    # ===============================
+    my $C1_IP       = '192.168.1.15';
+    my $C1_SHARE    = 'backuppc';
+    my $C1_USER     = 'dell';
+    my $C1_PASSWORD = 'Eice@987654321';
+
+    # We ignore UI payload completely for now
+    my $data = {
+        backupStoreIp  => $C1_IP,
+        backupShare    => $C1_SHARE,
+        backupUser     => $C1_USER,
+        backupPassword => $C1_PASSWORD,
+    };
+
+    # Try mounting SMB
+    eval {
+        mount_samba_storage(
+            ip       => $C1_IP,
+            share    => $C1_SHARE,
+            username => $C1_USER,
+            password => $C1_PASSWORD,
+        );
+    };
+    if ($@) {
+        my $err = $@;
+        $err =~ s/\n/ /g;
+        return json_error(500, "Hardcoded SMB mount failed: $err");
+    }
+
+    # Save config to disk (for GET later)
+    open my $fh, '>', $GLOBAL_CONFIG_FILE
+        or return json_error(500, "Cannot save global config file");
+    print $fh encode_json($data);
+    close $fh;
+
+    return json_success({
+        success => 1,
+        message => "Global config saved (HARDCODED C1 TEST MODE)",
+        storage => {
+            ip    => $C1_IP,
+            share => $C1_SHARE,
+            user  => $C1_USER,
+        }
+    });
+}
+
 
 # GET /api/hosts - List all hosts
 sub handle_get_hosts {
@@ -1700,6 +1992,19 @@ sub handle_post_get_user_hosts {
 
 }
 
+sub handle_get_global_config {
+    return json_success({}) unless -f $GLOBAL_CONFIG_FILE;
+
+    open my $fh, '<', $GLOBAL_CONFIG_FILE
+        or return json_error(500, "Cannot read global config");
+
+    local $/;
+    my $data = decode_json(<$fh>);
+    close $fh;
+
+    return json_success($data);
+}
+
 
 
 # Main PSGI application
@@ -1786,6 +2091,17 @@ sub app {
   elsif ($path eq '/api/get-user-hosts' && $request->method eq 'POST') {
      return handle_post_get_user_hosts($env);
   }
+    # elsif ( $path eq '/api/global-config' && $method eq 'POST' ) {
+    # $result = handle_post_global_config($env);
+    # }
+    elsif ( $path =~ m|^/api/global-config/?$| && $method eq 'POST' ) {
+    $result = handle_post_global_config($env);
+    }
+    elsif ( $path =~ m|^/api/global-config/?$| && $method eq 'GET' ) {
+    $result = handle_get_global_config($env);
+    }
+
+
     else {
         my $json = JSON->new->utf8->pretty;
         my $response = Plack::Response->new(404);

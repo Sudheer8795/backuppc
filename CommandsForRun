@@ -1,0 +1,169 @@
+curl -X POST "http://localhost:8081/api/restore/192.168.1.15/backups/3/restore" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "files": ["/sharedforsudheer"]
+      }'
+
+curl -X POST "http://localhost:8081/api/restore/192.168.1.15/backups/2/restore" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "files": [
+             { "share": "sharedforsudheer", "file": "xzxz.docx" }
+           ]
+         }'
+
+curl -X POST "http://localhost:8081/api/restore/192.168.1.15/backups/92/restore" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "AllowDeduction.cs"
+    ]
+  }'
+curl -X POST "http://localhost:8081/api/restore/192.168.1.15/backups/92/requests"   -H "Content-Type: application/json"   -d '{
+        "files": ["/newfile1.txt","/newfile2.txt"],
+        "share": "sharedforsudheer"
+      }'
+
+curl -X POST "http://localhost:8081/api/restore/192.168.1.15/backups/92/requests"   -H "Content-Type: application/json"   -d '{                                          
+        "files": ["/AllowDeduction.cs"],
+        "share": "sharedforsudheer"
+      }'
+
+
+curl -X POST "http://localhost:8081/api/backups/192.168.1.15/trigger" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"full"}'
+
+
+curl -X POST "http://localhost:8081/api/backups/192.168.1.15/trigger" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"incr"}'
+
+
+curl -X PUT "http://localhost:8081/api/config" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": {
+      "MaxOldPCPings": 10,
+      "EMailNotifyMinDays": 5
+    }
+  }'
+
+FOR RUN API - 
+sudo -u backuppc plackup backuppc_api_server.pl -p 8081
+
+$smbClientPath \\$host\$shareName $I_option -U $userName -E -d 1 -c tarmode\\ full -Tc$X_option - $fileList -- ForFullcmd 
+
+$smbClientPath \\$host\$shareName $I_option -U $userName -E -d 1 -c tarmode\\ inc -Tc$X_option - $fileList
+- $fileList -- ForIncr CMD
+
+$smbClientPath \\$host\$shareName $I_option -U $userName -E -d 1 -c tarmode\\ full -Tx -   -- For restore cmd
+
+
+Permission command
+sudo setenforce 0
+sudo chcon -t httpd_sys_rw_content_t /etc/BackupPC/
+sudo chown -R backuppc:backuppc /etc/BackupPC
+sudo chmod -R 775 /etc/BackupPC
+sudo systemctl restart backuppc
+sudo chmod -R 777 /home/aagarwalAnubhav/BackupVMTest
+
+Cloud fare command - 
+cloudflared tunnel \
+>   --url http://127.0.0.1:5173 \
+>   --http-host-header localhost
+
+cloudflared tunnel --url http://192.168.1.37
+
+Open host file command - 
+sudo nano /etc/BackupPC/pc/192.168.1.15.pl
+sudo nano /etc/BackupPC/config.pl
+
+
+sudo chown -R aagarwalAnubhav:aagarwalAnubhav /home/aagarwalAnubhav/BackupVMTest
+[aagarwalAnubhav@192 ~]$ sudo chmod -R 755 /home/aagarwalAnubhav/BackupVMTest
+
+nohup cloudflared tunnel --url http://127.0.0.1:8084 > cloudflared4.log 2>&1 &
+grep -i "trycloudflare.com" cloudflared4.log
+
+rclone rcd --rc-no-auth --rc-allow-origin="*" --rc-addr=:8082 --rc-serve
+
+nohup rclone rcd --rc-no-auth --rc-allow-origin="*" --rc-addr=:8082 --rc-serve > rclone_rc.log 2>&1 &
+
+nohup perl readlog.pl daemon -l http://*:3000 > readlog.log 2>&1 &
+
+
+sudo nano /etc/systemd/system/rclone-sync.timer
+[Unit]
+Description=Run Rclone Sync
+
+[Timer]
+OnCalendar=Tue *-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
+
+sudo nano /etc/systemd/system/rclone-sync.service
+[Unit]
+Description=Rclone Sync Job
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/perl /home/aagarwalAnubhav/sync.pl 192.168.1.15,192.168.1.30
+
+
+for logs - journalctl -u rclone-sync.service -f
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl restart rclone-sync.service
+sudo systemctl restart rclone-sync.timer
+
+sudo systemctl enable --now rclone-sync.timer
+
+nohup plackup app.psgi > app.log 2>&1 &
+
+sudo systemctl stop rclone-sync.timer
+sudo systemctl disable rclone-sync.timer
+
+Schedular - 
+sudo plackup -p 5000 app.psgi
+
+nohup perl logWrite.pl > logWrite.log 2>&1 &
+
+nohup plackup -s HTTP::Server::PSGI -o 0.0.0.0 -p 8090 app.psgi \
+  > app.log 2>&1 < /dev/null &
+
+disown
+
+nohup cloudflared tunnel --url http://0.0.0.0:5002 > cloudflared.log 2>&1 &
+
+
+nohup perl cloud_settings.pl > cloud_setting.log 2>&1 &
+
+nohup perl runcommand.pl > runcommand.log 2>&1 &
+
+nohup plackup -p 5002 -o 0.0.0.0 getSchedule.psgi > getSchedule.log 2>&1 &
+
+nohup plackup -p 8091 getCloudTransfer.psgi > cloudTransfer_api.log 2>&1 &
+
+nohup plackup -p 8092 -o 0.0.0.0 transferPolicies.psgi   > transferPolicies.log 2>&1 &
+
+nohup plackup -p 8093 -o 0.0.0.0 cloudTransfer.psgi   > cloudTransfer.log 2>&1 &
+
+nohup plackup -s HTTP::Server::PSGI \
+  -o 0.0.0.0 -p 8095 delete_log.psgi \
+  > delete_log.log 2>&1 < /dev/null &
+disown
+
+nohup plackup -s HTTP::Server::PSGI \
+  -o 0.0.0.0 -p 8096 cloud_overview.psgi \
+  > cloud_overview.log 2>&1 < /dev/null &
+
+
+
+
+
+
+
