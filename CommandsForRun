@@ -86,9 +86,14 @@ sudo chown -R aagarwalAnubhav:aagarwalAnubhav /home/aagarwalAnubhav/BackupVMTest
 nohup cloudflared tunnel --url http://127.0.0.1:8084 > cloudflared4.log 2>&1 &
 grep -i "trycloudflare.com" cloudflared4.log
 
+sudo apt update
+sudo apt install rclone -y
+
 rclone rcd --rc-no-auth --rc-allow-origin="*" --rc-addr=:8082 --rc-serve
 
 nohup rclone rcd --rc-no-auth --rc-allow-origin="*" --rc-addr=:8082 --rc-serve > rclone_rc.log 2>&1 &
+
+rclone config
 
 nohup perl readlog.pl daemon -l http://*:3000 > readlog.log 2>&1 &
 
