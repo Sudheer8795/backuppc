@@ -141,13 +141,15 @@ const CloudSettings = () => {
   const handleSaveSchedule = async () => {
 
     const res = await saveSchedule(schedule);
-
-    if (res.ok) {
-      alert('Schedule saved successfully');
-      getScheduleDetails();
-    } else {
+     
+    try{
+        alert('Schedule saved successfully');
+        getScheduleDetails();
+    }
+    catch(err){
       alert('Save failed');
     }
+      
   };
 
   const getScheduleDetails = async () => {

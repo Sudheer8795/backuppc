@@ -9,7 +9,7 @@ import { userRoles } from '../services/role'
 const Backups = () => {
   const navigate = useNavigate()
   // const { backups: contextBackups, refreshBackups } = useApp()
-  const [backups, setBackups] = useState([])
+  const [backups, setBackups] = useState()
   const [loading, setLoading] = useState(true)
   const [triggering, setTriggering] = useState({})
 
@@ -37,6 +37,7 @@ const Backups = () => {
 
       if (role == userRoles.level2) {
         const data = await backupsAPI.list()
+        //console.log(data)
         setBackups(data)
       }
 
@@ -132,14 +133,14 @@ const Backups = () => {
           </tr>
         </thead>
         <tbody>
-          {backups.length === 0 ? (
+          {backups?.length === 0 ? (
             <tr>
               <td colSpan="4" style={{ textAlign: 'center' }}>
                 No backups found.
               </td>
             </tr>
           ) : (
-            backups.map(backup => (
+            backups?.map(backup => (
               <tr key={backup.hostname}>
                 <td>{backup.hostname}</td>
                 <td>{backup.lastBackup}</td>

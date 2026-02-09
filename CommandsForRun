@@ -86,8 +86,15 @@ sudo chown -R aagarwalAnubhav:aagarwalAnubhav /home/aagarwalAnubhav/BackupVMTest
 nohup cloudflared tunnel --url http://127.0.0.1:8084 > cloudflared4.log 2>&1 &
 grep -i "trycloudflare.com" cloudflared4.log
 
+curl https://rclone.org/install.sh | sudo bash
+
+sudo yum install -y rclone        # RHEL / CentOS / Rocky / Alma
+sudo dnf install -y rclone        # Fedora
+sudo apt install -y rclone        # Ubuntu / Debian
+sudo pacman -S rclone             # Arch
+
 sudo apt update
-sudo apt install rclone -y
+sudo apt install -y libmojolicious-perl
 
 rclone rcd --rc-no-auth --rc-allow-origin="*" --rc-addr=:8082 --rc-serve
 
@@ -165,6 +172,35 @@ disown
 nohup plackup -s HTTP::Server::PSGI \
   -o 0.0.0.0 -p 8096 cloud_overview.psgi \
   > cloud_overview.log 2>&1 < /dev/null &
+
+
+nano cloud_cmd.sh
+chmod +x cloud_cmd.sh
+./cloud_cmd.sh
+
+sudo visudo
+
+Cmnd_Alias RCLONE_TIMER = \
+/usr/bin/tee /etc/systemd/system/rclone-sync.timer, \
+/bin/systemctl daemon-reload, \
+/bin/systemctl restart rclone-sync.timer
+
+ubuntu ALL=(ALL) NOPASSWD: RCLONE_TIMER
+
+
+
+const BASE_URL_CLOUD = "http://127.0.0.1:8082";
+const BASE_URL_LOG =  "http://127.0.0.1:8085"//"https://reflected-represent-dosage-rabbit.trycloudflare.com"//"http://127.0.0.1:8085";
+const BASE_URL_READLOG = "http://127.0.0.1:3000"//"https://income-touched-directory-partners.trycloudflare.com"//"http://127.0.0.1:3000";
+const BASE_URL_PERMISSION = "http://127.0.0.1:8084"//"https://fingers-producing-unix-representations.trycloudflare.com"//"http://127.0.0.1:8084";
+const BASE_URL_SETTING = "http://127.0.0.1:8088"//"https://virtue-vault-asking-schools.trycloudflare.com"//"http://127.0.0.1:8088";
+const BASE_URL_SCHEDULE = "http://127.0.0.1:8090"//"https://supervisors-rarely-cells-agrees.trycloudflare.com" //"http://127.0.0.1:8090";
+// const BASE_URL_UPDATE = "https://ensure-keyboard-reviewed-varieties.trycloudflare.com/api/providers"//"http://127.0.0.1:5001/api/providers";
+const BASE_URL_GET_SCHEDULE = "http://127.0.0.1:5003/"//"https://cope-shelter-preferences-confidence.trycloudflare.com/"//"http://127.0.0.1:5002/";
+const BASE_URL_TRANSFER = "http://127.0.0.1:8092"//"https://announce-cookbook-ross-praise.trycloudflare.com"//"http://127.0.0.1:8092";
+const API_BASE = "http://127.0.0.1:8093"//"https://spears-monitor-totals-beginning.trycloudflare.com"//"http://127.0.0.1:8093"; 
+const API_LOG_DELETE_URL = "http://127.0.0.1:8095"//"https://floppy-celebration-lamb-trusted.trycloudflare.com"//"http://127.0.0.1:8095";
+const API_CLOUD_OVERVIEW = "http://127.0.0.1:8096"//"https://assumption-ruling-closely-imagination.trycloudflare.com"//"http://127.0.0.1:8096";
 
 
 
